@@ -34,4 +34,4 @@ Thumbs.db
 .pytest_cache/
 
 # Firebase key
-.firebase_key.json
+firebase_key.json
