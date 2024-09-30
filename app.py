@@ -1,47 +1,26 @@
 import streamlit as st
-import firebase_admin
-from firebase_admin import credentials, firestore
+import toml
+from firebase_admin import credentials, initialize_app
 
-# Function to initialize Firestore with user-provided credentials
-def init_firestore(cred_file):
-    try:
-        cred = credentials.Certificate(cred_file)
-        firebase_admin.initialize_app(cred)
-        db = firestore.client()
-        st.success("Connected to Firestore successfully!")
-        return db
-    except Exception as e:
-        st.error(f"Failed to connect to Firestore: {e}")
-        return None
+# Load secrets from the secrets.toml file
+secrets = toml.load('./.streamlit/secrets.toml')
 
-# Function to fetch and display Firestore data
-def get_firestore_data(db, collection):
-    try:
-        docs = db.collection(collection).stream()
-        data = [doc.to_dict() for doc in docs]
-        if data:
-            st.write(f"Data from '{collection}' collection:")
-            st.write(data)
-        else:
-            st.warning(f"No data found in collection '{collection}'.")
-    except Exception as e:
-        st.error(f"Error fetching data from Firestore: {e}")
+# Initialize Firebase
+cred = credentials.Certificate({
+    "type": secrets['firebase']['type'],
+    "project_id": secrets['firebase']['project_id'],
+    "private_key_id": secrets['firebase']['private_key_id'],
+    "private_key": secrets['firebase']['private_key'].strip(),
+    "client_email": secrets['firebase']['client_email'],
+    "client_id": secrets['firebase']['client_id'],
+    "auth_uri": secrets['firebase']['auth_uri'],
+    "token_uri": secrets['firebase']['token_uri'],
+    "auth_provider_x509_cert_url": secrets['firebase']['auth_provider_x509_cert_url'],
+    "client_x509_cert_url": secrets['firebase']['client_x509_cert_url'],
+    "universe_domain": secrets['firebase']['universe_domain']
+})
 
-# Streamlit app layout
-def main():
-    st.title("Firestore Connection Page")
-    
-    # Input for Firebase credentials JSON file
-    cred_file = st.file_uploader("Upload Firebase Credentials (JSON)", type=["json"])
+initialize_app(cred)
 
-    # Input for Firestore collection name
-    collection = st.text_input("Enter Firestore Collection Name")
-    
-    if cred_file and collection:
-        # Initialize Firestore and display data
-        db = init_firestore(cred_file)
-        if db:
-            get_firestore_data(db, collection)
-
-if __name__ == "__main__":
-    main()
+st.title("BiblioPy Streamlit App")
+st.write("Connected to Firebase successfully!")
