@@ -96,8 +96,13 @@ def add_user():
 # Emprunter un livre 
 def borrow_book():
     st.subheader("Emprunter un livre")
-    user_email = st.text_input("Email de l'utilisateur")
-    book_title = st.text_input("Titre du livre")
+    
+    #populate selectbox
+    users = get_all_users()
+    books = get_all_books()
+    
+    user_email = st.selectbox("Email de l'utilisateur",options=[user["email"] for user in users])
+    book_title = st.selectbox("Titre du livre", options=[book["title"] for book in books])
 
     if st.button("Emprunter"):
         user = get_user_by_email(user_email)
@@ -169,6 +174,11 @@ def get_user_by_email(email):
         user["id"] = u.id   
     return user
 
+# Récupérer tous les utilisateurs
+def get_all_users():
+    users_ref = db.collection("users")
+    return [user.to_dict() for user in users_ref.stream()]
+
 # Récupérer un livre par titre 
 def get_book_by_title(title):
     books_ref = db.collection("books").where("title", "==", title).stream()
@@ -177,6 +187,11 @@ def get_book_by_title(title):
         book = b.to_dict()
         book["id"] = b.id
     return book
+
+# Récupérer tous les livres
+def get_all_books():
+    books_ref = db.collection("books")
+    return [book.to_dict() for book in books_ref.stream()]
 
 def display_books():
     st.subheader("Liste des livres")
