@@ -21,8 +21,167 @@ if not firebase_admin._apps :
         "universe_domain": secrets['firebase']['universe_domain']
     })
 
-    initialize_app(cred)
+    firebase_admin.initialize_app(cred)
+
+db = firestore.client()
 
 
 st.title("BiblioPy")
 st.write("Connected to Firebase successfully!")
+
+#Limite de prêt par utilisateur
+MAX_BORROW_LIMIT = 3
+
+#Main Page
+def main():
+    menu = ["Accueil", "Ajouter un livre", "Ajouter un utilisateur", "Emprunter un livre", "Retourner un livre", "Statistiques"]
+    choix = st.sidebar.selectbox("Menu", menu)
+
+if choix == "Accueil":
+    st.subheader("Bienvenue à BiblioPy")
+
+elif choix == "Ajouter un livre":
+    add_book()
+
+elif choix == "Ajouter un utilisateur":
+    add_user()
+
+elif choix == "Emprunter un livre":
+    borrow_book()
+
+elif choix == "Retourner un livre":
+    return_book()
+
+elif choix == "Statistiques":
+    show_statistics()
+
+#Ajouter un livre 
+def add_book():
+    st.subheader("Ajouter un nouveau livre")
+    title = st.text_input("Titre du livre")
+    author = st.text_input("Auteur du livre")
+    isbn = st.text_input("ISBN")
+    available_copies = st.number_input("Nombre de copies disponibles", min_value=1, step=1)
+    
+    if st.button("Ajouter livre"):
+        book_data = {
+            "title": title,
+            "author": author,
+            "isbn": isbn,
+            "available_copies": available_copies,
+            "borrowed_by": []
+        }
+        db.collection("books").add(book_data)
+        st.success(f"Le livre '{title}' a été ajouté avec succès !")
+
+#Ajouter un utilisateur 
+def add_user():
+    st.subheader("Ajouter un nouvel utilisateur")
+    name = st.text_input("Nom de l'utilisateur")
+    email = st.text_input("Email de l'utilisateur")
+
+    if st.button("Ajouter utilisateur"):
+        user_data = {
+            "name": name,
+            "email": email,
+            "borrowed_books": [],
+            "fines": 0
+        }
+        db.collection("users").add(user_data)
+        st.success(f"L'utilisateur '{name}' a été ajouté avec succès !")
+
+#Emprunter un livre 
+def borrow_book():
+    st.subheader("Emprunter un livre")
+    user_email = st.text_input("Email de l'utilisateur")
+    book_title = st.text_input("Titre du livre")
+
+    if st.button("Emprunter"):
+        user = get_user_by_email(user_email)
+        book = get_book_by_title(book_title)
+
+        if user and book:
+            if len(user["borrowed_books"]) >= MAX_BORROW_LIMIT:
+                st.error(f"L'utilisateur a atteint la limite de {MAX_BORROW_LIMIT} prêts.")
+            elif book["available_copies"] < 1:
+                st.warning("Livre non disponible. Réservation automatique.")
+                db.collection("reservations").add({
+                    "user_email": user_email,
+                    "book_title": book_title,
+                    "reserved_at": datetime.now()
+                })
+                st.success("Réservation effectuée.")
+            else:
+                # Mise à jour des informations de l'utilisateur et du livre
+                due_date = datetime.now() + relativedelta(weeks=2)
+                user["borrowed_books"].append({"book_title": book_title, "due_date": due_date})
+                db.collection("users").document(user["id"]).update({"borrowed_books": user["borrowed_books"]})
+
+                book["available_copies"] -= 1
+                db.collection("books").document(book["id"]).update({"available_copies": book["available_copies"]})
+                
+                st.success(f"Le livre '{book_title}' a été emprunté avec succès par {user_email}. Retour prévu le {due_date.strftime('%d-%m-%Y')}")
+
+#Retourner un livre 
+def return_book():
+    st.subheader("Retourner un livre")
+    user_email = st.text_input("Email de l'utilisateur")
+    book_title = st.text_input("Titre du livre")
+
+    if st.button("Retourner"):
+        user = get_user_by_email(user_email)
+        book = get_book_by_title(book_title)
+
+        if user and book:
+            borrowed_books = user["borrowed_books"]
+            borrowed_book = next((b for b in borrowed_books if b["book_title"] == book_title), None)
+
+            if borrowed_book:
+                # Vérification de la date de retour
+                due_date = borrowed_book["due_date"]
+                if datetime.now() > due_date:
+                    st.warning("Retour en retard. Une amende sera appliquée.")
+                    fine = (datetime.now() - due_date).days * 2  # Amende de 2 unités par jour de retard
+                    user["fines"] += fine
+
+                borrowed_books.remove(borrowed_book)
+                db.collection("users").document(user["id"]).update({"borrowed_books": borrowed_books, "fines": user["fines"]})
+
+                # Mise à jour du stock de livres
+                book["available_copies"] += 1
+                db.collection("books").document(book["id"]).update({"available_copies": book["available_copies"]})
+
+                st.success(f"Le livre '{book_title}' a été retourné.")
+            else:
+                st.error("Le livre n'a pas été trouvé dans les emprunts de l'utilisateur.")
+
+
+#Récupérer un utilisateur par email
+def get_user_by_email(email):
+    user_ref = db_collection("users").where("email", "==", email).stream()
+    user = None
+    for u in users_ref:
+        user = u.to_dict()
+        user["id"] = u.id
+    return user
+
+#Récupérer un livre par titre 
+def get_book_by_title(title):
+    books_ref = db.collection("books").where("title", "==", title).stream()
+    book = None 
+    for b in books_ref:
+        book = b.to_dict()
+        book["id"] = b.id
+    return book
+
+#Statistiques
+def show_statistics():
+    st.subheader("Statistiques")
+    #Affichage des statistiques 
+    borrowed_books_ref = db.collection("books").stream()
+    for book in borrowed_books_ref:
+        book_data = book.to_dict()
+        st.write(f"{book_data['title']}: {len(book_data['borrowed_by'])} emprunts")
+
+if __name__ == '__main__':
+    main()
