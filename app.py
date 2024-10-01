@@ -3,7 +3,7 @@ import toml
 import firebase_admin
 from firebase_admin import credentials, initialize_app
 from firebase_admin import firestore
-from datetime import datetime
+from datetime import datetime, timezone
 from dateutil.relativedelta import relativedelta
 
 # Load secrets from the secrets.toml file
@@ -99,7 +99,7 @@ def borrow_book():
     
     #populate selectbox
     users = get_all_users()
-    books = get_all_books()
+    books = get_all_borrowable_books()
     
     user_email = st.selectbox("Email de l'utilisateur",options=[user["email"] for user in users])
     book_title = st.selectbox("Titre du livre", options=[book["title"] for book in books])
@@ -137,37 +137,48 @@ def return_book():
     st.subheader("Retourner un livre")
     
     users = get_all_users()
-    books = get_all_books()
     
     user_email = st.selectbox("Email de l'utilisateur",options=[user["email"] for user in users])
-    book_title = st.selectbox("Titre du livre", options=[book["title"] for book in books])
     
-    if st.button("Retourner"):
-        user = get_user_by_email(user_email)
-        book = get_book_by_title(book_title)
+    if user_email :
+        borrowed_books = get_all_borrowed_books(user_email)
+        
+        book_titles = [book["book_title"] for book in borrowed_books]
+        book_title = st.selectbox("Sélectionnez le livre à retourner", options=book_titles)
+    
+        if st.button("Retourner"):
+            user = get_user_by_email(user_email)
+            book = get_book_by_title(book_title)
 
-        if user and book:
-            borrowed_books = user["borrowed_books"]
-            borrowed_book = next((b for b in borrowed_books if b["book_title"] == book_title), None)
+            if user and book:
+                borrowed_books = user["borrowed_books"]
+                borrowed_book = next((b for b in borrowed_books if b["book_title"] == book_title), None)
 
-            if borrowed_book:
-                # Vérification de la date de retour
-                due_date = borrowed_book["due_date"]
-                if datetime.now() > due_date:
-                    st.warning("Retour en retard. Une amende sera appliquée.")
-                    fine = (datetime.now() - due_date).days * 2  # Amende de 2 unités par jour de retard
-                    user["fines"] += fine
+                if borrowed_book:
+                    # Vérification de la date de retour
+                    due_date = borrowed_book["due_date"]
 
-                borrowed_books.remove(borrowed_book)
-                db.collection("users").document(user["id"]).update({"borrowed_books": borrowed_books, "fines": user["fines"]})
+                    if due_date.tzinfo is None:
+                        due_date = due_date.replace(tzinfo=timezone.utc)  
 
-                # Mise à jour du stock de livres
-                book["available_copies"] += 1
-                db.collection("books").document(book["id"]).update({"available_copies": book["available_copies"]})
+                    current_time = datetime.now(timezone.utc)
 
-                st.success(f"Le livre '{book_title}' a été retourné.")
-            else:
-                st.error("Le livre n'a pas été trouvé dans les emprunts de l'utilisateur.")
+                    if current_time > due_date:
+                        st.warning("Retour en retard. Une amende sera appliquée.")
+                        fine = (current_time - due_date).days * 2  
+                        # Amende de 2 unités par jour de retard
+
+
+                    borrowed_books.remove(borrowed_book)
+                    db.collection("users").document(user["id"]).update({"borrowed_books": borrowed_books, "fines": user["fines"]})
+
+                    # Mise à jour du stock de livres
+                    book["available_copies"] += 1
+                    db.collection("books").document(book["id"]).update({"available_copies": book["available_copies"]})
+
+                    st.success(f"Le livre '{book_title}' a été retourné.")
+                else:
+                    st.error("Le livre n'a pas été trouvé dans les emprunts de l'utilisateur.")
 
 # Récupérer un utilisateur par email
 def get_user_by_email(email):
@@ -193,9 +204,15 @@ def get_book_by_title(title):
     return book
 
 # Récupérer tous les livres
-def get_all_books():
-    books_ref = db.collection("books")
-    return [book.to_dict() for book in books_ref.stream()]
+def get_all_borrowable_books():
+    books_ref = db.collection("books").where("available_copies", ">" ,0).stream()
+    return [book.to_dict() for book in books_ref]
+
+def get_all_borrowed_books(user_email):
+    user = get_user_by_email(user_email)
+    books_borrowed = user["borrowed_books"]
+    
+    return books_borrowed
 
 def display_books():
     st.subheader("Liste des livres")
