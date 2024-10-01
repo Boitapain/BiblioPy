@@ -10,7 +10,7 @@ env/
 .venv/
 
 # Streamlit cache directory
-.streamlit/
+.streamlit/secrets.toml
 
 # Jupyter Notebook checkpoints (if used)
 .ipynb_checkpoints/
