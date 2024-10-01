@@ -35,24 +35,24 @@ MAX_BORROW_LIMIT = 3
 #Main Page
 def main():
     menu = ["Accueil", "Ajouter un livre", "Ajouter un utilisateur", "Emprunter un livre", "Retourner un livre", "Statistiques"]
-    choix = st.sidebar.selectbox("Menu", menu)
+    choice = st.sidebar.selectbox("Menu", menu)
 
-if choix == "Accueil":
+if choice == "Accueil":
     st.subheader("Bienvenue à BiblioPy")
 
-elif choix == "Ajouter un livre":
+elif choice == "Ajouter un livre":
     add_book()
 
-elif choix == "Ajouter un utilisateur":
+elif choice == "Ajouter un utilisateur":
     add_user()
 
-elif choix == "Emprunter un livre":
+elif choice == "Emprunter un livre":
     borrow_book()
 
-elif choix == "Retourner un livre":
+elif choice == "Retourner un livre":
     return_book()
 
-elif choix == "Statistiques":
+elif choice == "Statistiques":
     show_statistics()
 
 #Ajouter un livre 
