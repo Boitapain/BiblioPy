@@ -132,7 +132,7 @@ def borrow_book():
         else:
             st.warning("Le mail ou le livre n'existe pas")
 
-# Retourner un livre s
+# Retourner un livre
 def return_book():
     st.subheader("Retourner un livre")
     
@@ -208,12 +208,14 @@ def get_all_borrowable_books():
     books_ref = db.collection("books").where("available_copies", ">" ,0).stream()
     return [book.to_dict() for book in books_ref]
 
+# Récupérer tous les livres empruntés d'un utilisateur
 def get_all_borrowed_books(user_email):
     user = get_user_by_email(user_email)
     books_borrowed = user["borrowed_books"]
     
     return books_borrowed
 
+# Afficher la liste des livres
 def display_books():
     st.subheader("Liste des livres")
     books_ref = db.collection("books").stream()
