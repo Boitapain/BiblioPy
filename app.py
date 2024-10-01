@@ -135,9 +135,13 @@ def borrow_book():
 # Retourner un livre s
 def return_book():
     st.subheader("Retourner un livre")
-    user_email = st.text_input("Email de l'utilisateur")
-    book_title = st.text_input("Titre du livre")
-
+    
+    users = get_all_users()
+    books = get_all_books()
+    
+    user_email = st.selectbox("Email de l'utilisateur",options=[user["email"] for user in users])
+    book_title = st.selectbox("Titre du livre", options=[book["title"] for book in books])
+    
     if st.button("Retourner"):
         user = get_user_by_email(user_email)
         book = get_book_by_title(book_title)
