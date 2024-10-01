@@ -2,11 +2,14 @@ import streamlit as st
 import toml
 import firebase_admin
 from firebase_admin import credentials, initialize_app
+from firebase_admin import firestore
+from datetime import datetime
+from dateutil.relativedelta import relativedelta
 
 # Load secrets from the secrets.toml file
 secrets = toml.load('./.streamlit/secrets.toml')
 
-if not firebase_admin._apps : 
+if not firebase_admin._apps:
     cred = credentials.Certificate({
         "type": secrets['firebase']['type'],
         "project_id": secrets['firebase']['project_id'],
@@ -25,37 +28,37 @@ if not firebase_admin._apps :
 
 db = firestore.client()
 
-
 st.title("BiblioPy")
 st.write("Connected to Firebase successfully!")
 
-#Limite de prêt par utilisateur
+# Limite de prêt par utilisateur
 MAX_BORROW_LIMIT = 3
 
-#Main Page
+# Main Page
 def main():
     menu = ["Accueil", "Ajouter un livre", "Ajouter un utilisateur", "Emprunter un livre", "Retourner un livre", "Statistiques"]
     choice = st.sidebar.selectbox("Menu", menu)
 
-if choice == "Accueil":
-    st.subheader("Bienvenue à BiblioPy")
+    if choice == "Accueil":
+        st.subheader("Bienvenue à BiblioPy")
+        display_books()
 
-elif choice == "Ajouter un livre":
-    add_book()
+    elif choice == "Ajouter un livre":
+        add_book()
 
-elif choice == "Ajouter un utilisateur":
-    add_user()
+    elif choice == "Ajouter un utilisateur":
+        add_user()
 
-elif choice == "Emprunter un livre":
-    borrow_book()
+    elif choice == "Emprunter un livre":
+        borrow_book()
 
-elif choice == "Retourner un livre":
-    return_book()
+    elif choice == "Retourner un livre":
+        return_book()
 
-elif choice == "Statistiques":
-    show_statistics()
+    elif choice == "Statistiques":
+        show_statistics()
 
-#Ajouter un livre 
+# Ajouter un livre 
 def add_book():
     st.subheader("Ajouter un nouveau livre")
     title = st.text_input("Titre du livre")
@@ -69,12 +72,12 @@ def add_book():
             "author": author,
             "isbn": isbn,
             "available_copies": available_copies,
-            "borrowed_by": []
+            "borrowed_by": []  # Keep track of who has borrowed the book
         }
-        db.collection("books").add(book_data)
+        db.collection("books").add(book_data)  # Writing to Firestore
         st.success(f"Le livre '{title}' a été ajouté avec succès !")
 
-#Ajouter un utilisateur 
+# Ajouter un utilisateur 
 def add_user():
     st.subheader("Ajouter un nouvel utilisateur")
     name = st.text_input("Nom de l'utilisateur")
@@ -90,7 +93,7 @@ def add_user():
         db.collection("users").add(user_data)
         st.success(f"L'utilisateur '{name}' a été ajouté avec succès !")
 
-#Emprunter un livre 
+# Emprunter un livre 
 def borrow_book():
     st.subheader("Emprunter un livre")
     user_email = st.text_input("Email de l'utilisateur")
@@ -121,8 +124,10 @@ def borrow_book():
                 db.collection("books").document(book["id"]).update({"available_copies": book["available_copies"]})
                 
                 st.success(f"Le livre '{book_title}' a été emprunté avec succès par {user_email}. Retour prévu le {due_date.strftime('%d-%m-%Y')}")
+        else:
+            st.warning("Le mail ou le livre n'existe pas")
 
-#Retourner un livre 
+# Retourner un livre s
 def return_book():
     st.subheader("Retourner un livre")
     user_email = st.text_input("Email de l'utilisateur")
@@ -155,17 +160,16 @@ def return_book():
             else:
                 st.error("Le livre n'a pas été trouvé dans les emprunts de l'utilisateur.")
 
-
-#Récupérer un utilisateur par email
+# Récupérer un utilisateur par email
 def get_user_by_email(email):
-    user_ref = db_collection("users").where("email", "==", email).stream()
+    user_ref = db.collection("users").where("email", "==", email).stream()
     user = None
-    for u in users_ref:
+    for u in user_ref:
         user = u.to_dict()
-        user["id"] = u.id
+        user["id"] = u.id   
     return user
 
-#Récupérer un livre par titre 
+# Récupérer un livre par titre 
 def get_book_by_title(title):
     books_ref = db.collection("books").where("title", "==", title).stream()
     book = None 
@@ -174,10 +178,30 @@ def get_book_by_title(title):
         book["id"] = b.id
     return book
 
-#Statistiques
+def display_books():
+    st.subheader("Liste des livres")
+    books_ref = db.collection("books").stream()
+
+    st.write("---")
+    # Loop through each book and create a row for its details
+    for book in books_ref:
+        book_data = book.to_dict()
+        cols = st.columns(4)  # Create 4 columns for each book's details
+
+        with cols[0]:
+            st.write(f"**Titre:** {book_data['title']}")
+        with cols[1]:
+            st.write(f"**Auteur:** {book_data['author']}")
+        with cols[2]:
+            st.write(f"**ISBN:** {book_data['isbn']}")
+        with cols[3]:
+            st.write(f"**Copies disponibles:** {book_data['available_copies']}")
+
+        st.write("---")  # Separator for clarity
+# Statistiques
 def show_statistics():
     st.subheader("Statistiques")
-    #Affichage des statistiques 
+    # Affichage des statistiques 
     borrowed_books_ref = db.collection("books").stream()
     for book in borrowed_books_ref:
         book_data = book.to_dict()
