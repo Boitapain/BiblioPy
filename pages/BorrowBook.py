@@ -34,9 +34,7 @@ def run():
             if len(user["borrowed_books"]) >= MAX_BORROW_LIMIT:
                 st.error(f"L'utilisateur a atteint la limite de {MAX_BORROW_LIMIT} prêts.")
             elif book["available_copies"] < 1:
-                if is_book_reserved_by_user(user_email, book_title):
-                    st.warning("Vous avez déjà une réservation en atente pour ce livre.")
-                else:
+                st.warning("Livre non disponible. Réservation automatique.")
                 db.collection("reservations").add({
                     "user_email": user_email,
                     "book_title": book_title,
@@ -44,7 +42,11 @@ def run():
                 })
                 st.success("Réservation effectuée.")
             else:
+                borrowed_at = datetime.now()
                 due_date = datetime.now() + relativedelta(weeks=2)
+
+                add_borrow_record(user_email, book_title, borrowed_at, due_date)
+                
                 user["borrowed_books"].append({"book_title": book_title, "due_date": due_date})
                 db.collection("users").document(user["id"]).update({"borrowed_books": user["borrowed_books"]})
 
