@@ -7,6 +7,13 @@ db = firestore.client()
 from utils import sidebar
 
 st.set_page_config(page_title="Emprunter un livre")
+
+def is_book_reserved_by_user(user_email, book_title):
+    """Vérifie si l'utilisateur a déjà réservé ce livre."""
+    reservations = db.collection("reservations").where("user_email", "==", user_email).where("book_title", "==", book_title).stream()
+    return len(list(reservations)) > 0
+
+
 def run():
     sidebar()
     st.title("Emprunter un livre")
@@ -21,10 +28,15 @@ def run():
         book = get_book_by_title(book_title)
 
         if user and book:
+            if "borrowed_books" not in user:
+                user["borrowed_books"] = []
+                
             if len(user["borrowed_books"]) >= MAX_BORROW_LIMIT:
                 st.error(f"L'utilisateur a atteint la limite de {MAX_BORROW_LIMIT} prêts.")
             elif book["available_copies"] < 1:
-                st.warning("Livre non disponible. Réservation automatique.")
+                if is_book_reserved_by_user(user_email, book_title):
+                    st.warning("Vous avez déjà une réservation en atente pour ce livre.")
+                else:
                 db.collection("reservations").add({
                     "user_email": user_email,
                     "book_title": book_title,
