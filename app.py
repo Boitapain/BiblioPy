@@ -6,14 +6,13 @@ initialize_firebase()
 from utils import sidebar
 db = firestore.client()
 from utils import get_user_info
-from pages import Login
+from pages import Login, CreateAccount
 
 def display():
     st.title("BiblioPy - Accueil")
     st.subheader("Bienvenue à BiblioPy")
     sidebar()
     books_ref = db.collection("books").stream()
-    st.write(get_user_info())
 
     st.write("---")
     for book in books_ref:
@@ -33,8 +32,29 @@ def display():
 
 def run():
     user_info = get_user_info()
+    
+    if "create_account_clicked" not in st.session_state:
+        st.session_state.create_account_clicked = False
+
+    if "login_clicked" not in st.session_state:
+        st.session_state.login_clicked = False
+    
     if user_info is None:
-        Login.run()
+        st.subheader("Choisissez une option de connexion")
+        
+        if st.button("Créer un nouveau compte"):
+            st.session_state.create_account_clicked = True
+            st.session_state.login_clicked = False
+
+        if st.button("Connectez-vous"):
+            st.session_state.login_clicked = True
+            st.session_state.create_account_clicked = False
+
+        if st.session_state.create_account_clicked:
+            CreateAccount.run()
+
+        if st.session_state.login_clicked:
+            Login.run()
     else:
         display()
 run()

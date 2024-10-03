@@ -1,5 +1,5 @@
 import streamlit as st
-from firestore_utils import get_all_users, get_all_borrowable_books, get_user_by_email, get_book_by_title, MAX_BORROW_LIMIT
+from firestore_utils import get_all_users, get_all_borrowable_books, get_user_by_email, get_book_by_title, add_borrow_record, MAX_BORROW_LIMIT
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
 from firebase_admin import firestore
@@ -9,7 +9,7 @@ from utils import sidebar
 st.set_page_config(page_title="Emprunter un livre")
 
 def is_book_reserved_by_user(user_email, book_title):
-    """Vérifie si l'utilisateur a déjà réservé ce livre."""
+    #Vérifie si l'utilisateur a déjà réservé ce livre.
     reservations = db.collection("reservations").where("user_email", "==", user_email).where("book_title", "==", book_title).stream()
     return len(list(reservations)) > 0
 
