@@ -25,6 +25,17 @@ def add_user_to_firestore(name, email):
     }
     db.collection("users").add(user_data)
 
+# Function to add borrow record
+def add_borrow_record(user_email, book_title, borrowed_at, due_date):
+    db.collection("emprunt").add({
+        "user_email": user_email,
+        "book_title": book_title,
+        "borrowed_at": borrowed_at,
+        "due_date": due_date,
+        "status": "in progress",
+        "fine": 0
+    })
+
 # Function to get a user by email
 def get_user_by_email(email):
     user_ref = db.collection("users").where("email", "==", email).stream()
@@ -52,6 +63,10 @@ def get_book_by_title(title):
 def get_all_borrowable_books():
     books_ref = db.collection("books").where("available_copies", ">", 0).stream()
     return [book.to_dict() for book in books_ref]
+
+# Function to get borrowed books 
+def get_borrowed_books(user_email):
+    return db.collection("emprunt").where("user_email", "==", user_email).where("status", "==", "in progress").stream()
 
 # Function to get all borrowed books of a user
 def get_all_borrowed_books(user_email):
