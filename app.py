@@ -10,7 +10,8 @@ from pages import Login, CreateAccount
 
 def display():
     st.title("BiblioPy - Accueil")
-    st.subheader("Bienvenue à BiblioPy")
+    user = get_user_info()
+    st.subheader(f"Bienvenue sur BiblioPy {user['username']}")
     sidebar()
     books_ref = db.collection("books").stream()
 
