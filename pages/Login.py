@@ -1,6 +1,6 @@
 import streamlit as st
 from firestore_utils import get_user_by_email
-from utils import set_user_info, get_user_info
+from utils import set_user_info
 
 def run():
     st.title("Se connecter")

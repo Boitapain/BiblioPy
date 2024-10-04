@@ -49,10 +49,11 @@ def display():
         .book-available {
             font-weight: normal;
         }
-        .edit-button {
+        .custom-button {
             background-color: #FFFFFF;
             border: none;
             border-radius: 5px;
+            margin-left: 8px;
             padding: 4px 8px;  /* Smaller padding */
             cursor: pointer;
             font-size: 14px;  /* Smaller font size */
@@ -60,7 +61,7 @@ def display():
             align-items: center;
             justify-content: center;
         }
-        .edit-button:hover {
+        .custom-button:hover {
             background-color: #ddd;  
         }
         </style>
@@ -76,7 +77,8 @@ def display():
             <div class="book-author">{book_data['author']}</div>
             <div class="book-isbn">{book_data['isbn']}</div>
             <div class="book-available">{book_data['available_copies']} copies disponibles</div>
-            <button class="edit-button" onclick="editBook('{book.id}')">✏️</button>
+            <button class="custom-button" onclick="editBook('{book.id}')">✏️</button>
+            <button class="custom-button" onclick="deleteBook('{book.id}')">🗑️</button>
         </div>
         """, unsafe_allow_html=True)
         
