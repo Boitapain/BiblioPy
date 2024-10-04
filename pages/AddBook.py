@@ -5,7 +5,7 @@ from utils import sidebar
 st.set_page_config(page_title="Ajouter un livre")
 def run():
     sidebar()
-    st.title("Ajouter un Livre")
+    st.title("Ajouter un livre")
     title = st.text_input("Titre du livre")
     author = st.text_input("Auteur du livre")
     isbn = st.text_input("ISBN")

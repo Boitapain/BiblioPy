@@ -15,21 +15,74 @@ def display():
     books_ref = db.collection("books").stream()
 
     st.write("---")
+    
+    # Custom CSS for the book display
+    st.markdown("""
+        <style>
+        .book-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: #E3EED9;
+            border-radius: 20px;
+            padding: 20px;
+            margin-bottom: 15px;
+            height: 100px; /* Ensures consistent height */
+        }
+        .book-title, .book-author, .book-isbn, .book-available {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex: 1;
+            text-align: center;
+        }
+        .book-title {
+            font-weight: bold;
+        }
+        .book-author {
+            font-style: italic;
+            font-weight: bold;
+        }
+        .book-isbn {
+            font-weight: 900;
+        }
+        .book-available {
+            font-weight: normal;
+        }
+        .edit-button {
+            background-color: #FFFFFF;
+            border: none;
+            border-radius: 5px;
+            padding: 4px 8px;  /* Smaller padding */
+            cursor: pointer;
+            font-size: 14px;  /* Smaller font size */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .edit-button:hover {
+            background-color: #ddd;  
+        }
+        </style>
+    """, unsafe_allow_html=True)
+
     for book in books_ref:
         book_data = book.to_dict()
-        cols = st.columns(4)
-
-        with cols[0]:
-            st.write(f"**Titre:** {book_data['title']}")
-        with cols[1]:
-            st.write(f"**Auteur:** {book_data['author']}")
-        with cols[2]:
-            st.write(f"**ISBN:** {book_data['isbn']}")
-        with cols[3]:
-            st.write(f"**Copies disponibles:** {book_data['available_copies']}")
-
-        st.write("---")
-
+        
+        # HTML layout for each book with custom styles
+        st.markdown(f"""
+        <div class="book-container">
+            <div class="book-title">{book_data['title']}</div>
+            <div class="book-author">{book_data['author']}</div>
+            <div class="book-isbn">{book_data['isbn']}</div>
+            <div class="book-available">{book_data['available_copies']} copies disponibles</div>
+            <button class="edit-button" onclick="editBook('{book.id}')">✏️</button>
+        </div>
+        """, unsafe_allow_html=True)
+        
+def editBook():
+    return None
+            
 def run():
     user_info = get_user_info()
     
@@ -46,7 +99,7 @@ def run():
             st.session_state.create_account_clicked = True
             st.session_state.login_clicked = False
 
-        if st.button("Connectez-vous"):
+        if st.button("Se connecter"):
             st.session_state.login_clicked = True
             st.session_state.create_account_clicked = False
 

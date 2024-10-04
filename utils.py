@@ -6,7 +6,7 @@ def sidebar():
     st.sidebar.page_link("pages/BorrowBook.py", label="Emprunter un livre", icon="📚")
     st.sidebar.page_link("pages/ReturnBook.py", label="Rendre un livre", icon="📥")
     st.sidebar.page_link("pages/Statistics.py", label="Statistiques", icon="📊")
-    if st.sidebar.button("↪️ Déconnection"):
+    if st.sidebar.button("↪️ Déconnexion"):
         logout()
 
 def logout():
