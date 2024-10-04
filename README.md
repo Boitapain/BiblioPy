@@ -39,4 +39,46 @@ Pour utiliser Firestore et Firebase Authentification, vous devez configurer un p
  ┃ ┗ 📜secrets.toml         
  ┣ 📜app.py                
  ┣ 📜requirements.txt         
- ┗ 📜README.md              
+ ┗ 📜README.md
+```
+
+## Base de données 
+```mermaid
+erDiagram
+    USERS {
+        INT idusers
+        VARCHAR email
+        FLOAT fines
+        VARCHAR name
+        INT books_idbooks
+    }
+    BOOKS {
+        INT idbooks
+        VARCHAR author
+        VARCHAR available_copies
+        INT isbn
+        VARCHAR title
+    }
+    RESERVATIONS {
+        INT idreservations
+        VARCHAR book_title
+        VARCHAR status
+        DATETIME reserved_at
+        INT users_idusers
+    }
+    EMPRUNT {
+        INT idemprunt
+        VARCHAR book_title
+        DATE due_date
+        FLOAT fine
+        VARCHAR status
+        VARCHAR empruntcol
+        DATETIME borrowed_at
+        INT users_idusers
+    }
+
+    USERS ||--o{ BOOKS : has
+    USERS ||--o{ RESERVATIONS : makes
+    USERS ||--o{ EMPRUNT : borrows
+    BOOKS ||--o{ EMPRUNT : borrowed_by
+```
